@@ -1,0 +1,87 @@
+name: Refresh Make.com usage and deploy dashboard
+
+on:
+  schedule:
+    # Every 6 hours. GitHub may delay scheduled runs by up to ~15 min.
+    - cron: "0 */6 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/fetch_make_usage.py"
+      - "dashboard/**"
+      - "requirements.txt"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch Make.com usage data
+        env:
+          # Required
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_API_BASE_URL: ${{ secrets.MAKE_API_BASE_URL }}
+          MAKE_ORGANIZATION_ID: ${{ secrets.MAKE_ORGANIZATION_ID }}
+          # Optional (defaults to empty / 0 / EUR if unset)
+          MAKE_TEAM_ID: ${{ secrets.MAKE_TEAM_ID }}
+          MAKE_PLAN_CREDITS: ${{ secrets.MAKE_PLAN_CREDITS }}
+          MAKE_MONTHLY_COST_EUR: ${{ secrets.MAKE_MONTHLY_COST_EUR }}
+          MAKE_EXTRA_CREDITS: ${{ secrets.MAKE_EXTRA_CREDITS }}
+          MAKE_EXTRA_COST_EUR: ${{ secrets.MAKE_EXTRA_COST_EUR }}
+          CURRENCY: ${{ secrets.CURRENCY }}
+        run: python scripts/fetch_make_usage.py
+
+      - name: Build site bundle
+        run: |
+          mkdir -p _site
+          cp -r dashboard _site/dashboard
+          cp -r data _site/data
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="fr">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=./dashboard/">
+            <title>Make Usage Dashboard</title>
+            <link rel="canonical" href="./dashboard/">
+          </head>
+          <body><a href="./dashboard/">Open dashboard</a></body>
+          </html>
+          EOF
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

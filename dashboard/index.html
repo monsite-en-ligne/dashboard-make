@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Make Usage Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --bg-card: #181b22;
+      --bg-card-hover: #1f232c;
+      --bg-row-alt: #1b1f27;
+      --border: #2a2f3a;
+      --text: #e8eaed;
+      --text-muted: #9aa0a6;
+      --text-dim: #6b7280;
+      --accent: #4c9ff8;
+      --accent-soft: rgba(76, 159, 248, 0.12);
+      --green: #4caf50;
+      --orange: #ff9800;
+      --red: #e53935;
+      --yellow: #ffd54f;
+      --purple: #b388ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 32px;
+      line-height: 1.5;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+    .subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+    .badge {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 28px 0 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .kpi-label { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-value { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+    .kpi-value.money { color: var(--accent); }
+    .kpi-sub { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+    .progress-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-top: 14px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .progress-header strong { color: var(--text); }
+    .progress-bar { background: var(--border); border-radius: 8px; height: 12px; overflow: hidden; }
+    .progress-fill { height: 100%; transition: width 0.4s ease; }
+    .progress-fill.ok { background: var(--green); }
+    .progress-fill.warn { background: var(--orange); }
+    .progress-fill.danger { background: var(--red); }
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-top: 14px;
+    }
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+    .chart-wrap { position: relative; height: 280px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+    tbody tr:hover { background: var(--bg-card-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .money-cell { color: var(--accent); font-weight: 500; }
+    .status-dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; margin-right: 6px; vertical-align: middle;
+    }
+    .status-active { background: var(--green); }
+    .status-inactive { background: var(--text-dim); }
+    .name-cell { max-width: 320px; }
+    .name-cell .name { font-weight: 500; word-break: break-word; }
+    .folder-tag {
+      color: var(--text-muted); font-size: 11px;
+      margin-top: 3px;
+    }
+    .scrollable-table {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .notes {
+      background: rgba(255, 213, 79, 0.08);
+      border: 1px solid rgba(255, 213, 79, 0.25);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+    .notes-title { color: var(--yellow); font-weight: 600; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .notes ul { padding-left: 20px; color: var(--text-muted); }
+    .notes li { margin-top: 3px; }
+    .error-box {
+      background: rgba(229, 57, 53, 0.08);
+      border: 1px solid var(--red);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .error-box code {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .error-box ul { margin-top: 12px; margin-left: 20px; color: var(--text-muted); }
+    .footer {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .footer code {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .loading { text-align: center; padding: 60px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Make Usage Dashboard</h1>
+      <div class="subtitle" id="generated-at">Chargement…</div>
+    </div>
+    <span class="badge" id="scope-badge">—</span>
+  </div>
+  <div id="content"><div class="loading">Chargement des données…</div></div>
+
+  <script>
+    const fmtInt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+    function fmtMoney(n, c) {
+      try {
+        return new Intl.NumberFormat("fr-FR", {
+          style: "currency", currency: c || "EUR",
+          minimumFractionDigits: 2, maximumFractionDigits: 2,
+        }).format(n || 0);
+      } catch (e) {
+        return `${(n || 0).toFixed(2)} ${c || "EUR"}`;
+      }
+    }
+    function fmtMoneyFine(n, c) {
+      // For values like cost-per-credit which are often < 0.01.
+      try {
+        return new Intl.NumberFormat("fr-FR", {
+          style: "currency", currency: c || "EUR",
+          minimumFractionDigits: 4, maximumFractionDigits: 6,
+        }).format(n || 0);
+      } catch (e) {
+        return `${(n || 0).toFixed(6)} ${c || "EUR"}`;
+      }
+    }
+    function progressClass(pct) {
+      if (pct >= 90) return "danger";
+      if (pct >= 70) return "warn";
+      return "ok";
+    }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+    const chartGridColor = "#2a2f3a";
+    const chartTickColor = "#9aa0a6";
+
+    function render(data) {
+      const t = data.totals || {};
+      const c = data.currency || "EUR";
+      const scenarios = data.scenarios || [];
+      const fsum = data.folders_summary || [];
+      const quota = t.quota_used_pct || 0;
+
+      document.getElementById("generated-at").textContent =
+        "Généré le " + new Date(data.generated_at).toLocaleString("fr-FR");
+      const scope = data.scope || {};
+      const scopeText = scope.kind === "team" ? "Scope: team"
+                     : scope.auto_team_used ? "Scope: org (team auto)"
+                     : "Scope: organization";
+      document.getElementById("scope-badge").textContent = scopeText + " · " + c;
+
+      const content = document.getElementById("content");
+      content.innerHTML = `
+        <div class="section-title">Coût</div>
+        <div class="grid">
+          <div class="card">
+            <div class="kpi-label">Coût estimé 30 jours</div>
+            <div class="kpi-value money">${fmtMoney(t.month_cost_eur, c)}</div>
+            <div class="kpi-sub">${fmtInt.format(t.month_operations || 0)} crédits</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Coût estimé 7 jours</div>
+            <div class="kpi-value money">${fmtMoney(t.week_cost_eur, c)}</div>
+            <div class="kpi-sub">${fmtInt.format(t.week_operations || 0)} crédits</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Coût moyen / jour</div>
+            <div class="kpi-value money">${fmtMoney(t.avg_daily_cost_eur, c)}</div>
+            <div class="kpi-sub">sur ${(data.usage_by_day || []).length} jours</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Coût par crédit</div>
+            <div class="kpi-value">${fmtMoneyFine(t.cost_per_credit_eur, c)}</div>
+            <div class="kpi-sub">Forfait ${fmtMoney(t.monthly_cost_eur, c)} · ${fmtInt.format(t.total_credits || 0)} crédits</div>
+          </div>
+        </div>
+
+        <div class="section-title">Volume & Santé</div>
+        <div class="grid">
+          <div class="card">
+            <div class="kpi-label">Opérations 30j</div>
+            <div class="kpi-value">${fmtInt.format(t.month_operations || 0)}</div>
+            <div class="kpi-sub">${quota}% du quota (${fmtInt.format(t.total_credits || 0)})</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Opérations 7j</div>
+            <div class="kpi-value">${fmtInt.format(t.week_operations || 0)}</div>
+            <div class="kpi-sub">~${fmtInt.format(Math.round((t.week_operations || 0) / 7))} / jour</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Erreurs (7j / 30j)</div>
+            <div class="kpi-value" style="color: var(--red)">${t.errors_7d || 0} <span style="color: var(--text-muted); font-size: 18px">/ ${t.errors_30d || 0}</span></div>
+            <div class="kpi-sub">${scenarios.filter(s => s.errors_30d > 0).length} scénarios concernés</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Avertissements (7j / 30j)</div>
+            <div class="kpi-value" style="color: var(--orange)">${t.warnings_7d || 0} <span style="color: var(--text-muted); font-size: 18px">/ ${t.warnings_30d || 0}</span></div>
+            <div class="kpi-sub">${scenarios.filter(s => s.warnings_30d > 0).length} scénarios concernés</div>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span>Quota mensuel utilisé</span>
+            <span><strong>${fmtInt.format(t.month_operations || 0)}</strong> / ${fmtInt.format(t.total_credits || 0)} crédits · ${quota}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${progressClass(quota)}" style="width: ${Math.min(quota, 100)}%"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Tendances</div>
+        <div class="charts-row">
+          <div class="panel">
+            <div class="panel-title">Opérations par jour (30j)</div>
+            <div class="chart-wrap"><canvas id="usage-chart"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Coût estimé par folder (30j)</div>
+            <div class="chart-wrap"><canvas id="folder-cost-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Top 10 scénarios par coût estimé (30j)</div>
+          <div class="chart-wrap" style="height: 360px;"><canvas id="top-scenarios-chart"></canvas></div>
+        </div>
+
+        ${(data.notes && data.notes.length) ? `
+          <div class="notes">
+            <div class="notes-title">Notes du script</div>
+            <ul>${data.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+          </div>` : ""}
+
+        <div class="section-title">Coût par folder</div>
+        <div class="scrollable-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Folder</th>
+                <th class="num">Scénarios</th>
+                <th class="num">Crédits 7j</th>
+                <th class="num">Coût 7j</th>
+                <th class="num">Crédits 30j</th>
+                <th class="num">Coût 30j</th>
+                <th class="num">Err 30j</th>
+                <th class="num">Warn 30j</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${fsum.length ? fsum.map((f) => `
+                <tr>
+                  <td>${esc(f.folder_name || "Sans folder / org-level")}</td>
+                  <td class="num">${f.active_scenarios_count}/${f.scenarios_count}</td>
+                  <td class="num">${fmtInt.format(f.operations_7d || 0)}</td>
+                  <td class="num money-cell">${fmtMoney(f.cost_7d_eur, c)}</td>
+                  <td class="num">${fmtInt.format(f.operations_30d || 0)}</td>
+                  <td class="num money-cell">${fmtMoney(f.cost_30d_eur, c)}</td>
+                  <td class="num" style="color:${f.errors_30d ? "var(--red)" : "inherit"}">${f.errors_30d || 0}</td>
+                  <td class="num" style="color:${f.warnings_30d ? "var(--orange)" : "inherit"}">${f.warnings_30d || 0}</td>
+                </tr>
+              `).join("") : `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Aucun folder.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-title">Scénarios (triés par crédits 30j)</div>
+        <div class="scrollable-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Scénario</th>
+                <th>Statut</th>
+                <th>Folder</th>
+                <th class="num">Crédits 7j</th>
+                <th class="num">Coût 7j</th>
+                <th class="num">Crédits 30j</th>
+                <th class="num">Coût 30j</th>
+                <th class="num">Err 30j</th>
+                <th class="num">Warn 30j</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${scenarios.length ? scenarios.map((s) => `
+                <tr>
+                  <td class="name-cell"><div class="name">${esc(s.name || "(sans nom)")}</div></td>
+                  <td>
+                    <span class="status-dot ${s.is_active ? "status-active" : "status-inactive"}"></span>
+                    ${s.is_active ? "Actif" : "Inactif"}
+                  </td>
+                  <td><span class="folder-tag">${esc(s.folder_name || "Sans folder / org-level")}</span></td>
+                  <td class="num">${fmtInt.format(s.operations_7d || 0)}</td>
+                  <td class="num money-cell">${fmtMoney(s.cost_7d_eur, c)}</td>
+                  <td class="num">${fmtInt.format(s.operations_30d || 0)}</td>
+                  <td class="num money-cell">${fmtMoney(s.cost_30d_eur, c)}</td>
+                  <td class="num" style="color:${s.errors_30d ? "var(--red)" : "inherit"}">${s.errors_30d || 0}</td>
+                  <td class="num" style="color:${s.warnings_30d ? "var(--orange)" : "inherit"}">${s.warnings_30d || 0}</td>
+                </tr>
+              `).join("") : `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:24px;">Aucun scénario.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          Rafraîchir : <code>python scripts/fetch_make_usage.py</code>
+        </div>
+      `;
+
+      drawUsageChart(data.usage_by_day || []);
+      drawFolderCostChart(fsum, c);
+      drawTopScenariosChart(scenarios, c);
+    }
+
+    function drawUsageChart(days) {
+      const ctx = document.getElementById("usage-chart");
+      if (!ctx) return;
+      const sorted = [...days].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const labels = sorted.map((d) => {
+        const date = new Date(d.date);
+        return isNaN(date) ? d.date : date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+      });
+      const values = sorted.map((d) => d.operations || 0);
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Opérations",
+            data: values,
+            borderColor: "#4c9ff8",
+            backgroundColor: "rgba(76, 159, 248, 0.12)",
+            fill: true, tension: 0.3, pointRadius: 2.5, pointHoverRadius: 5,
+          }],
+        },
+        options: chartOpts({ xCallback: null }),
+      });
+    }
+
+    function drawFolderCostChart(folders, currency) {
+      const ctx = document.getElementById("folder-cost-chart");
+      if (!ctx) return;
+      const top = folders.slice(0, 10);
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: top.map((f) => f.folder_name || "Sans folder"),
+          datasets: [{
+            label: "Coût 30j",
+            data: top.map((f) => f.cost_30d_eur || 0),
+            backgroundColor: "rgba(179, 136, 255, 0.7)",
+            borderColor: "#b388ff",
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => fmtMoney(ctx.parsed.x, currency) } },
+          },
+          scales: {
+            x: {
+              ticks: { color: chartTickColor, callback: (v) => fmtMoney(v, currency) },
+              grid: { color: chartGridColor }, beginAtZero: true,
+            },
+            y: { ticks: { color: chartTickColor }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    function drawTopScenariosChart(scenarios, currency) {
+      const ctx = document.getElementById("top-scenarios-chart");
+      if (!ctx) return;
+      const top = [...scenarios]
+        .filter((s) => (s.cost_30d_eur || 0) > 0)
+        .sort((a, b) => (b.cost_30d_eur || 0) - (a.cost_30d_eur || 0))
+        .slice(0, 10);
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: top.map((s) => truncate(s.name || "(sans nom)", 50)),
+          datasets: [{
+            label: "Coût 30j",
+            data: top.map((s) => s.cost_30d_eur || 0),
+            backgroundColor: "rgba(76, 159, 248, 0.7)",
+            borderColor: "#4c9ff8",
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const sc = top[ctx.dataIndex];
+                  return [
+                    fmtMoney(ctx.parsed.x, currency),
+                    `${fmtInt.format(sc.operations_30d || 0)} crédits`,
+                    `Folder: ${sc.folder_name}`,
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: chartTickColor, callback: (v) => fmtMoney(v, currency) },
+              grid: { color: chartGridColor }, beginAtZero: true,
+            },
+            y: { ticks: { color: chartTickColor }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    function chartOpts({ xCallback }) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { color: chartTickColor, callback: xCallback || undefined },
+            grid: { color: chartGridColor },
+          },
+          y: { ticks: { color: chartTickColor }, grid: { color: chartGridColor }, beginAtZero: true },
+        },
+      };
+    }
+
+    function truncate(s, n) {
+      const str = String(s || "");
+      return str.length > n ? str.slice(0, n - 1) + "…" : str;
+    }
+
+    function showError(msg) {
+      document.getElementById("content").innerHTML = `
+        <div class="error-box">
+          <strong>Impossible de charger les données.</strong>
+          <p style="margin-top: 8px; color: var(--text-muted);">${esc(msg)}</p>
+          <p style="margin-top: 14px;">Vérifie :</p>
+          <ul>
+            <li>Que tu as bien lancé <code>python scripts/fetch_make_usage.py</code></li>
+            <li>Que tu visites cette page via <code>http://localhost:8000/dashboard/</code> (pas <code>file://</code>)</li>
+            <li>Que <code>data/make_usage.json</code> existe à la racine du projet</li>
+          </ul>
+        </div>`;
+    }
+
+    fetch("../data/make_usage.json", { cache: "no-cache" })
+      .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(render)
+      .catch((e) => showError(e.message));
+  </script>
+</body>
+</html>

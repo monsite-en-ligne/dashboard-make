@@ -1,0 +1,33 @@
+# Secrets and local environment
+.env
+.env.local
+*.key
+*.pem
+
+# Local data extracted from Make.com (may contain sensitive info)
+data/*.json
+data/*.csv
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# GitHub Pages build output (created by the Actions workflow)
+_site/
+
+# Local prompt / notes files (kept out of public repo)
+prompt*.txt
+prompt*.md
