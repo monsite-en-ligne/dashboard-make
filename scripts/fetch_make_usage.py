@@ -20,8 +20,27 @@ ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
 
+# GitHub Actions injects unset secrets as the literal string "" (two quote
+# chars) rather than an empty string. Same risk for sentinels like None/null
+# pasted from other tools. Normalize once so downstream code treats them as
+# truly empty and falls back to organizationId.
+_EMPTY_SENTINELS = {"", "none", "null", "undefined", "nil", "n/a"}
+
+
+def _env(name, default=""):
+    raw = os.environ.get(name, default)
+    if raw is None:
+        return ""
+    s = str(raw).strip()
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
+        s = s[1:-1].strip()
+    if s.lower() in _EMPTY_SENTINELS:
+        return ""
+    return s
+
+
 def _env_int(name, default=0):
-    raw = os.environ.get(name, "").strip()
+    raw = _env(name)
     try:
         return int(raw) if raw else default
     except ValueError:
@@ -29,22 +48,22 @@ def _env_int(name, default=0):
 
 
 def _env_float(name, default=0.0):
-    raw = os.environ.get(name, "").strip()
+    raw = _env(name)
     try:
         return float(raw) if raw else default
     except ValueError:
         return default
 
 
-TOKEN = os.environ.get("MAKE_API_TOKEN", "").strip()
-BASE_URL = os.environ.get("MAKE_API_BASE_URL", "").strip().rstrip("/")
-ORG_ID = os.environ.get("MAKE_ORGANIZATION_ID", "").strip()
-TEAM_ID = os.environ.get("MAKE_TEAM_ID", "").strip()
+TOKEN = _env("MAKE_API_TOKEN")
+BASE_URL = _env("MAKE_API_BASE_URL").rstrip("/")
+ORG_ID = _env("MAKE_ORGANIZATION_ID")
+TEAM_ID = _env("MAKE_TEAM_ID")
 PLAN_CREDITS = _env_int("MAKE_PLAN_CREDITS", 0)
 MONTHLY_COST = _env_float("MAKE_MONTHLY_COST_EUR", 0.0)
 EXTRA_CREDITS = _env_int("MAKE_EXTRA_CREDITS", 0)
 EXTRA_COST = _env_float("MAKE_EXTRA_COST_EUR", 0.0)
-CURRENCY = os.environ.get("CURRENCY", "EUR").strip() or "EUR"
+CURRENCY = _env("CURRENCY") or "EUR"
 
 # Pre-compute cost-per-credit once: same value used for scenarios, folders, totals.
 TOTAL_CREDITS = (PLAN_CREDITS or 0) + (EXTRA_CREDITS or 0)

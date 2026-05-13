@@ -42,10 +42,12 @@ Variables **requises** :
 - `MAKE_ORGANIZATION_ID` — visible dans l'URL de ton organisation
 
 Variables **optionnelles** :
-- `MAKE_TEAM_ID` — si vide, le script tente d'auto-découvrir une seule team dans l'organisation. Si plusieurs teams existent, les scénarios sont regroupés sous *« Sans folder / org-level »*.
+- `MAKE_TEAM_ID` — si vide ou absent, le script utilise `organizationId` comme scope et tente d'auto-découvrir une seule team dans l'organisation pour les folders. Si plusieurs teams existent, les scénarios sont regroupés sous *« Sans folder / org-level »*.
 - `MAKE_PLAN_CREDITS`, `MAKE_MONTHLY_COST_EUR` — pour le calcul du coût estimé
 - `MAKE_EXTRA_CREDITS`, `MAKE_EXTRA_COST_EUR` — surconsommation éventuelle
 - `CURRENCY` — devise affichée (défaut `EUR`)
+
+> 💡 Toutes les variables d'environnement sont normalisées au chargement : espaces et guillemets entourants sont retirés, et les valeurs `""`, `none`, `null`, `undefined` (insensible à la casse) sont traitées comme vides. Utile notamment pour `MAKE_TEAM_ID` : un secret GitHub non renseigné est parfois injecté comme la chaîne littérale `""`, ce qui produirait un appel API invalide (`teamId=%22%22`).
 
 > ⚠ Le fichier `.env` est exclu de Git (voir `.gitignore`). **Ne le commite jamais.**
 
@@ -100,7 +102,7 @@ git push -u origin main
 | `MAKE_API_TOKEN` | ✅ | Token API Make.com |
 | `MAKE_API_BASE_URL` | ✅ | Ex. `https://eu2.make.com/api/v2` |
 | `MAKE_ORGANIZATION_ID` | ✅ | ID numérique de l'organisation |
-| `MAKE_TEAM_ID` | ❌ | Optionnel — auto-discovery si absent |
+| `MAKE_TEAM_ID` | ❌ | Optionnel — laisser vide (ou ne pas créer le secret) pour utiliser `organizationId` + auto-discovery |
 | `MAKE_PLAN_CREDITS` | ❌ | Crédits inclus dans le forfait |
 | `MAKE_MONTHLY_COST_EUR` | ❌ | Coût mensuel du forfait |
 | `MAKE_EXTRA_CREDITS` | ❌ | Crédits supplémentaires achetés |
